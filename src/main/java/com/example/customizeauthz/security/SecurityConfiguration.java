@@ -1,6 +1,7 @@
 package com.example.customizeauthz.security;
 
 import com.example.customizeauthz.service.UserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -15,10 +16,20 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletResponse;
+import java.io.PrintWriter;
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 @Slf4j
@@ -38,6 +49,34 @@ public class SecurityConfiguration {
         SecureRandom secureRandom = new SecureRandom();
         secureRandom.nextBytes(new byte[16]); // 预热SecureRandom
         return new BCryptPasswordEncoder(BCryptPasswordEncoder.BCryptVersion.$2B, 12, secureRandom);
+    }
+
+    /**
+     * AuthenticationEntryPoint 是 Spring Security 中处理认证异常的核心入口点，主要负责：
+     * <p>
+     * 1. 捕获未认证/认证失败的请求
+     * 2. 生成统一的认证失败响应
+     * 3. 提供认证异常处理的扩展点
+     * </p>
+     */
+    @Bean
+    public AuthenticationEntryPoint authenticationEntryPoint() {
+        return (request, response, authException) -> {
+            response.setContentType("application/json;charset=UTF-8");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            // 构建Json
+            Map<String, Object> map = new HashMap<>();
+            map.put("code", HttpServletResponse.SC_UNAUTHORIZED);
+            map.put("msg", authException.getMessage());
+            map.put("path", request.getRequestURI());
+            map.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            // 返回JSON格式
+            String json = new ObjectMapper().writeValueAsString(map);
+            PrintWriter writer = response.getWriter();
+            writer.write(json);
+            writer.flush();
+            writer.close();
+        };
     }
 
     @Bean
@@ -78,38 +117,78 @@ public class SecurityConfiguration {
         // return http.build();
         //启用会话存储
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED);
-        http.authorizeRequests()
-                //任何请求必须要经过认证才可以放行
-                .anyRequest().authenticated()
+        http
+                // authentication entry for exception handler
+                .exceptionHandling().authenticationEntryPoint(authenticationEntryPoint())
 
-                .and() // For login Page
-                //启用表单认证模式
+                .and()
+                .authorizeRequests().anyRequest().authenticated()
+
+                // For login Page启用表单认证模式 - 登录
+                // - loginProcessingUrl：默认请求提交地址 - 它属于 Spring Security 的内置认证流程 这个URL会被 Spring Security 自动处理，不需要在Controller中实现
+                // - defaultSuccessUrl：默认登录成功后跳转的页面
+                // - permitAll：放行上面loginPage与loginProcessingUrl不做认证
+                // - usernameParameter：设置提交的参数名
+                .and()
                 .formLogin()
-                //默认登录页面
-                .loginPage("/login.html")
-                //默认请求提交地址 - 它属于 Spring Security 的内置认证流程 
-                // 这个URL会被 Spring Security 自动处理，不需要在Controller中实现
+                .successHandler(loginSuccessHandler())
+                .failureHandler(loginFailureHandler())
                 .loginProcessingUrl("/check_login")
-                //放行上面loginPage与loginProcessingUrl不做认证
                 .permitAll()
-                //设置提交的参数名
                 .usernameParameter("u").passwordParameter("p")
 
-                .and()// For logout Button
-                //开始设置注销功能
+                // For logout Button
+                .and()
                 .logout()
-                //注销功能的 绑定的URL地址
                 .logoutUrl("/logout")
-                //Session直接过期
                 .invalidateHttpSession(true)
-                //清除认证信息
                 .clearAuthentication(true)
-                //注销后跳转地址
-                .logoutSuccessUrl("/login.html").and()
+                .logoutSuccessHandler(logoutSuccessHandler())
 
                 //禁用csrf安全防护
+                .and()
                 .csrf().disable();
         return http.build();
     }
+
+    @Bean
+    public LogoutSuccessHandler logoutSuccessHandler() {
+        return (request, response, authentication) -> {
+            response.setContentType("application/json;charset=UTF-8");
+            response.setStatus(HttpServletResponse.SC_OK);
+
+            PrintWriter writer = response.getWriter();
+            writer.write("{\"code\":200,\"msg\":\"Logout Success\"}");
+            writer.flush();
+            writer.close();
+        };
+    }
+
+    @Bean
+    public AuthenticationSuccessHandler loginSuccessHandler() {
+        return (request, response, authentication) -> {
+            response.setContentType("application/json;charset=UTF-8");
+            response.setStatus(HttpServletResponse.SC_OK);
+
+            PrintWriter writer = response.getWriter();
+            writer.write("{\"code\":200,\"msg\":\"Login Success\"}");
+            writer.flush();
+            writer.close();
+        };
+    }
+
+    @Bean
+    public AuthenticationFailureHandler loginFailureHandler() {
+        return (request, response, exception) -> {
+            response.setContentType("application/json;charset=UTF-8");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+
+            PrintWriter writer = response.getWriter();
+            writer.write("{\"code\":401,\"msg\":\"Login Failure\"}");
+            writer.flush();
+            writer.close();
+        };
+    }
+
 
 }
