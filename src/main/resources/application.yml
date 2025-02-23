@@ -3,9 +3,14 @@ server:
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://124.222.168.33:8893/authz?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://124.222.168.33:8893/authz?useSSL=false&serverTimezone=UTC
     username: root
-    password: root
+    password: mysql8888888
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema.sql
+      data-locations: classpath:db/data.sql
 logging:
   level:
-    root: info
+    root: DEBUG
