@@ -1,5 +1,8 @@
 package com.example.customizeauthz.security;
 
+import com.example.customizeauthz.filter.UsernamePasswordAfterFilter;
+import com.example.customizeauthz.filter.UsernamePasswordAtFilter;
+import com.example.customizeauthz.filter.UsernamePasswordBeforeFilter;
 import com.example.customizeauthz.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +23,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 
 import javax.annotation.Resource;
@@ -148,6 +152,12 @@ public class SecurityConfiguration {
                 //禁用csrf安全防护
                 .and()
                 .csrf().disable();
+
+        // 添加自定义过滤器
+        http.addFilterBefore(new UsernamePasswordBeforeFilter(), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterAfter(new UsernamePasswordAfterFilter(), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterAt(new UsernamePasswordAtFilter(), UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 
