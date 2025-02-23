@@ -20,8 +20,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import javax.annotation.Resource;
 import java.security.SecureRandom;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-
 @Configuration
 @Slf4j
 public class SecurityConfiguration {
@@ -73,44 +71,45 @@ public class SecurityConfiguration {
     //基于基础认证模式进行测试
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-        http.authorizeHttpRequests((authz) -> {
-            authz.anyRequest().authenticated();
-        }).httpBasic(withDefaults());
-        return http.build();
-        // //启用会话存储
-        // http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED);
-        // http.authorizeRequests()
-        //         //任何请求必须要经过认证才可以放行
-        //         .anyRequest().authenticated()
-        //
-        //         .and()
-        //         //启用表单认证模式
-        //         .formLogin()
-        //         //默认登录页面
-        //         .loginPage("/login.html")
-        //         //默认请求提交地址
-        //         .loginProcessingUrl("/check_login")
-        //         //放行上面loginPage与loginProcessingUrl不做认证
-        //         .permitAll()
-        //         //设置提交的参数名
-        //         .usernameParameter("u").passwordParameter("p")
-        //
-        //         .and()
-        //         //开始设置注销功能
-        //         .logout()
-        //         //注销功能的URL地址
-        //         .logoutUrl("/logout")
-        //         //Session直接过期
-        //         .invalidateHttpSession(true)
-        //         //清除认证信息
-        //         .clearAuthentication(true)
-        //         //注销后跳转地址
-        //         .logoutSuccessUrl("/login.html").and()
-        //
-        //         //禁用csrf安全防护
-        //         .csrf().disable();
+        // http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+        // http.authorizeHttpRequests((authz) -> {
+        //     authz.anyRequest().authenticated();
+        // }).httpBasic(withDefaults());
         // return http.build();
+        //启用会话存储
+        http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED);
+        http.authorizeRequests()
+                //任何请求必须要经过认证才可以放行
+                .anyRequest().authenticated()
+
+                .and() // For login Page
+                //启用表单认证模式
+                .formLogin()
+                //默认登录页面
+                .loginPage("/login.html")
+                //默认请求提交地址 - 它属于 Spring Security 的内置认证流程 
+                // 这个URL会被 Spring Security 自动处理，不需要在Controller中实现
+                .loginProcessingUrl("/check_login")
+                //放行上面loginPage与loginProcessingUrl不做认证
+                .permitAll()
+                //设置提交的参数名
+                .usernameParameter("u").passwordParameter("p")
+
+                .and()// For logout Button
+                //开始设置注销功能
+                .logout()
+                //注销功能的 绑定的URL地址
+                .logoutUrl("/logout")
+                //Session直接过期
+                .invalidateHttpSession(true)
+                //清除认证信息
+                .clearAuthentication(true)
+                //注销后跳转地址
+                .logoutSuccessUrl("/login.html").and()
+
+                //禁用csrf安全防护
+                .csrf().disable();
+        return http.build();
     }
 
 }
