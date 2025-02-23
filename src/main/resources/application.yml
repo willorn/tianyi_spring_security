@@ -1,6 +1,9 @@
 server:
-  port: 80
+  port: 8080
 spring:
+  profiles:
+    active: dev  # 激活开发环境配置
+    # active: prod  # 激活生产环境配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://124.222.168.33:8893/authz?useSSL=false&serverTimezone=UTC
@@ -13,4 +16,4 @@ spring:
       data-locations: classpath:db/data.sql
 logging:
   level:
-    root: DEBUG
+    root: info

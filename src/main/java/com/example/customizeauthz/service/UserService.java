@@ -16,17 +16,17 @@ import javax.annotation.Resource;
 public class UserService implements UserDetailsService {
     @Resource
     UserMapper userMapper;
+
+    /**
+     * 【1】授权的时候  重写 load user 方法  是为了去数据库找到对应的用户信息
+     */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("username", username);
-        User user = userMapper.selectOne(queryWrapper);
-        if(user == null){
+        User user = userMapper.selectOne(new QueryWrapper<User>().lambda().eq(User::getUsername, username));
+        if (user==null) {
             log.error("Access denied: Username: " + username + " not found");
             throw new UsernameNotFoundException("Username:" + username + "not found");
-        }else{
-            return user;
         }
-
+        return user;
     }
 }
