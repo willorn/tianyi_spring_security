@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,6 +24,7 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
 import java.security.SecureRandom;
@@ -88,7 +90,6 @@ public class SecurityConfiguration {
                 String username = authentication.getName();
                 String password = authentication.getCredentials().toString();
                 UserDetails user = userService.loadUserByUsername(username);
-                String encodePassword = passwordEncoder().encode(password);
                 if (passwordEncoder().matches(password, user.getPassword())) {
                     log.info("Access success:" + user);
                     // Case1 密码匹配成功则构建一个UsernamePasswordAuthenticationToken对象并返回
@@ -107,6 +108,10 @@ public class SecurityConfiguration {
         };
     }
 
+    public boolean authorize(Authentication authentication, HttpServletRequest request) {
+        return true;
+    }
+
     //基于基础认证模式进行测试
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -122,7 +127,13 @@ public class SecurityConfiguration {
                 .exceptionHandling().authenticationEntryPoint(authenticationEntryPoint())
 
                 .and()
-                .authorizeRequests().anyRequest().authenticated()
+                .authorizeRequests()
+                .mvcMatchers(HttpMethod.GET, "/login.html").permitAll()  // 登录页面（如果不是BE写的话可以去掉这里）
+                .mvcMatchers(HttpMethod.GET, "/hello").hasRole("ADMIN1")  // 完成登录认证 && 拥有ADMIN角色
+                .mvcMatchers(HttpMethod.GET, "/public").access("hasAnyRole('USER', 'ADMIN')")  // 完成登录认证 && 是 ADMIN 或者是 USR
+                .mvcMatchers(HttpMethod.GET, "/hello").access("hasAuthority('CREATE_USER')")  // 完成登录认证 && 拥有ADMIN角色
+                .mvcMatchers(HttpMethod.GET, "/hello").access("@securityConfiguration.authorize(authentication, request)")
+                .anyRequest().authenticated() // 其他请求只需要最基础的登录认证
 
                 // For login Page启用表单认证模式 - 登录
                 // - loginProcessingUrl：默认请求提交地址 - 它属于 Spring Security 的内置认证流程 这个URL会被 Spring Security 自动处理，不需要在Controller中实现
@@ -147,7 +158,7 @@ public class SecurityConfiguration {
 
                 //禁用csrf安全防护
                 .and()
-                .csrf().disable();
+                .csrf().ignoringAntMatchers("/ant-tokens/");
         return http.build();
     }
 

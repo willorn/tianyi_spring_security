@@ -11,7 +11,7 @@ spring:
     password: mysql8888888
   sql:
     init:
-      mode: always
+      mode: never
       schema-locations: classpath:db/schema.sql
       data-locations: classpath:db/data.sql
 logging:

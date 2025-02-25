@@ -10,7 +10,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 @Data
 @TableName("my_user")
@@ -27,7 +26,11 @@ public class User implements UserDetails {
      */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+        // 可以从数据库里面获取到这些信息
+        return Arrays.asList(new SimpleGrantedAuthority("ROLE_USER"),
+                new SimpleGrantedAuthority("ROLE_ADMIN"),
+                new SimpleGrantedAuthority("CREATE_USER"),
+                new SimpleGrantedAuthority("UPDATE_USER"));
     }
 
     /*
