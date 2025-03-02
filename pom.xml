@@ -16,6 +16,7 @@
 	<properties>
 		<java.version>1.8</java.version>
 	</properties>
+	<packaging>war</packaging>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -69,6 +70,23 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.eclipse.jetty</groupId>
+				<!--嵌入式Jetty的Maven插件-->
+				<artifactId>jetty-maven-plugin</artifactId>
+				<version>9.4.49.v20220914</version>
+				<configuration>
+					<webApp>
+						<defaultsDescriptor>src/main/resources/webdefault.xml</defaultsDescriptor>
+					</webApp>
+					<!--应用启动后加载webapp网页与资源-->
+					<webAppSourceDirectory>src/main/webapp</webAppSourceDirectory>
+					<httpConnector>
+						<!--应用端口号,默认8080端口-->
+						<port>80</port>
+					</httpConnector>
 				</configuration>
 			</plugin>
 		</plugins>
